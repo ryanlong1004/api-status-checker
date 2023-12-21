@@ -4,6 +4,16 @@ from typing import Any
 import json
 import httpx
 from loguru import logger
+from mail import email
+import datetime
+
+logger.add(
+    "/usr1/rlong/api-status-checker/LOG",
+    level="DEBUG",
+    colorize=False,
+    backtrace=True,
+    diagnose=True,
+)
 
 HEADERS = {
     "accept": "application/ld+json",
@@ -32,20 +42,35 @@ class CheckResult:
 
 def check_endpoint(name: str, url: str, headers: dict[str, Any]):
     try:
-        r = httpx.get(url, headers=headers, timeout=10)
-        result = CheckResult(name, url, r.status_code, r.content if r.status_code != 200 else None)
+        response = httpx.get(url, headers=headers, timeout=10)
+        result = CheckResult(
+            name,
+            url,
+            response.status_code,
+            response.content if response.status_code != 200 else None,
+        )
         if result.status_code != 200:
             logger.error(result)
+            email(
+                "ryan.long@noaa.gov",
+                f"API Failure {datetime.datetime.now().isoformat()}",
+                str(result),
+            )
+            # email("kyle.nevins@noaa.gov", f"API Failure {datetime.datetime.now().isoformat()}", str(result))
         logger.info(result)
 
     except (socket.timeout, httpx.ReadTimeout) as e:
+        result = CheckResult(name, url, 1, str(e))
         logger.error(CheckResult(name, url, 1, str(e)))
+        email("ryan.long@noaa.gov", "API Failure", str(result))
 
 
 async def main():
     """main execution"""
     logger.info("starting...")
-    with open("./queue.json", "r", encoding="utf-8") as _input:
+    with open(
+        "/usr1/rlong/api-status-checker/queue.json", "r", encoding="utf-8"
+    ) as _input:
         endpoints = json.load(_input)
         await asyncio.gather(
             *[
