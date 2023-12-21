@@ -12,7 +12,7 @@ import sys
 
 
 def run(cmd):
-    return subprocess.run(cmd.split(), shell=True, check=True)
+    return subprocess.run(cmd.split(), shell=False, check=True)
 
 
 @click.command

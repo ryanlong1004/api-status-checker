@@ -33,9 +33,7 @@ class CheckResult:
 def check_endpoint(name: str, url: str, headers: dict[str, Any]):
     try:
         r = httpx.get(url, headers=headers, timeout=10)
-        result = CheckResult(
-            name, url, r.status_code, r.content if r.status_code != 200 else None
-        )
+        result = CheckResult(name, url, r.status_code, r.content if r.status_code != 200 else None)
         if result.status_code != 200:
             logger.error(result)
         logger.info(result)
