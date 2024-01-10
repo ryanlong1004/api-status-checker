@@ -1,4 +1,5 @@
 import asyncio
+import os
 import socket
 from typing import Any
 import json
@@ -6,6 +7,10 @@ import httpx
 from loguru import logger
 from mail import email
 import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 logger.add(
     "/usr1/rlong/api-status-checker/LOG",
@@ -52,7 +57,7 @@ def check_endpoint(name: str, url: str, headers: dict[str, Any]):
         if result.status_code != 200:
             logger.error(result)
             email(
-                "ryan.long@noaa.gov",
+                os.getenv("STATUS_CHECKER_EMAIL"),
                 f"API Failure {datetime.datetime.now().isoformat()}",
                 str(result),
             )
@@ -61,7 +66,7 @@ def check_endpoint(name: str, url: str, headers: dict[str, Any]):
     except (socket.timeout, httpx.ReadTimeout) as e:
         result = CheckResult(name, url, 1, str(e))
         logger.error(CheckResult(name, url, 1, str(e)))
-        email("ryan.long@noaa.gov", "API Failure", str(result))
+        email(os.getenv("STATUS_CHECKER_EMAIL"), "API Failure", str(result))
 
 
 async def main():
