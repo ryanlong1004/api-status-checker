@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 EMAIL_TO = os.getenv("STATUS_CHECKER_EMAIL")
+API_KEY = os.getenv("STATUS_CHECKER_KEY")
 
 logger.add(
     "/usr1/rlong/api-status-checker/LOG",
@@ -23,7 +24,7 @@ logger.add(
 
 HEADERS = {
     "accept": "application/ld+json",
-    "Authorization": "spotp_fd14ed9b418c8d9d10eceafab8048135021e5d188cb59e12ba03a3eff02c5bbf",
+    "Authorization": API_KEY,
 }
 
 
