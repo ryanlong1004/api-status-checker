@@ -17,7 +17,7 @@ logger.add(
 
 HEADERS = {
     "accept": "application/ld+json",
-    "Authorization": "spotp_10499d9479d32dc3530161b9fc569297f32cdc287c7ba33ebdc45a99aab6aff5",
+    "Authorization": "spotp_fd14ed9b418c8d9d10eceafab8048135021e5d188cb59e12ba03a3eff02c5bbf",
 }
 
 
@@ -56,7 +56,6 @@ def check_endpoint(name: str, url: str, headers: dict[str, Any]):
                 f"API Failure {datetime.datetime.now().isoformat()}",
                 str(result),
             )
-            # email("kyle.nevins@noaa.gov", f"API Failure {datetime.datetime.now().isoformat()}", str(result))
         logger.info(result)
 
     except (socket.timeout, httpx.ReadTimeout) as e:
