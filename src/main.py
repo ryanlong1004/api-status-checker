@@ -1,13 +1,17 @@
+"""main execution"""
 import asyncio
+import datetime
 import os
 import socket
 from typing import Any, List
 import json
 import httpx
+
 from loguru import logger
-from mail import email
-import datetime
 from dotenv import load_dotenv
+
+from mail import email
+import bb
 
 load_dotenv()
 
@@ -92,6 +96,25 @@ def handle_email(email_to: str, errors: List[str]) -> None:
     )
 
 
+def handle_big_brother(errors):
+    """report number of issues to BB"""
+    if errors:
+        bb.post(bb.Color.RED, f"{len(errors)} issues reported")
+    else:
+        bb.post(bb.Color.GREEN, "no current issues")
+
+
+async def run_checks(endpoints):
+    """runs checks async and returns total results"""
+    with httpx.Client() as client:
+        return await asyncio.gather(
+            *[
+                to_job(check_endpoint, name, endpoint, HEADERS, client)
+                for name, endpoint in endpoints.items()
+            ]
+        )
+
+
 EMAIL_TO = os.getenv("STATUS_CHECKER_EMAIL")
 
 
@@ -103,19 +126,17 @@ async def main():
         "/usr1/rlong/api-status-checker/queue.json", "r", encoding="utf-8"
     ) as _input:
         endpoints = json.load(_input)
-        results = []
-        with httpx.Client() as client:
-            results = await asyncio.gather(
-                *[
-                    to_job(check_endpoint, name, endpoint, HEADERS, client)
-                    for name, endpoint in endpoints.items()
-                ]
-            )
+        results = await run_checks(endpoints)
+
         errors = handle_check_results(results)
+        # handle_big_brother(errors)
+
         email_to = os.getenv("STATUS_CHECKER_EMAIL")
         if not email_to:
             raise ValueError(f"invalid email address {email_to}")
+
         handle_email(email_to, errors)
+
         logger.info("finished")
 
 
