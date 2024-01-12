@@ -11,20 +11,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMAIL_TO = os.getenv("STATUS_CHECKER_EMAIL")
-API_KEY = os.getenv("STATUS_CHECKER_KEY")
-
 logger.add(
     "/usr1/rlong/api-status-checker/LOG",
-    level="DEBUG",
+    rotation="7 days",
+    compression="zip",
+    retention="30 days",
     colorize=False,
     backtrace=True,
-    diagnose=True,
+    diagnose=False,
+    enqueue=True,
+    level="INFO",
 )
 
 HEADERS = {
     "accept": "application/ld+json",
-    "Authorization": API_KEY,
+    "Authorization": os.getenv("STATUS_CHECKER_KEY"),
 }
 
 
@@ -55,6 +56,7 @@ def check_endpoint(
     name: str, url: str, headers: dict[str, Any], client
 ) -> "CheckResult":
     """hits the url with a get request and returns the results as a CheckResult"""
+    logger.debug(f"testing {name}@{url}")
     try:
         response = client.get(url, headers=headers, timeout=10)
         return CheckResult(
@@ -69,7 +71,7 @@ def check_endpoint(
 
 
 def handle_check_results(results: List[CheckResult]):
-    """logs the results and sends an email of all failed results"""
+    """logs the results and return failed result messages"""
     errors = []
     for result in results:
         message = f"{result.status_code}:{result}"
@@ -78,15 +80,24 @@ def handle_check_results(results: List[CheckResult]):
             errors.append(message)
             continue
         logger.info(message)
+    return errors
+
+
+def handle_email(email_to: str, errors: List[str]) -> None:
+    """emails failures to receipient"""
     email(
-        EMAIL_TO,
+        email_to,
         f"API Failure {datetime.datetime.now().isoformat()}",
         "\n".join(errors),
     )
 
 
+EMAIL_TO = os.getenv("STATUS_CHECKER_EMAIL")
+
+
 async def main():
     """main execution"""
+
     logger.info("starting...")
     with open(
         "/usr1/rlong/api-status-checker/queue.json", "r", encoding="utf-8"
@@ -100,7 +111,11 @@ async def main():
                     for name, endpoint in endpoints.items()
                 ]
             )
-        handle_check_results(results)
+        errors = handle_check_results(results)
+        email_to = os.getenv("STATUS_CHECKER_EMAIL")
+        if not email_to:
+            raise ValueError(f"invalid email address {email_to}")
+        handle_email(email_to, errors)
         logger.info("finished")
 
 
