@@ -15,8 +15,12 @@ import bb
 
 load_dotenv()
 
+LOG_LOCATION = os.getenv("LOG_LOCATION")
+assert LOG_LOCATION
+QUEUE_URL_ROOT = os.getenv("QUEUE_URL_ROOT")
+
 logger.add(
-    "/usr1/rlong/api-status-checker/LOG",
+    LOG_LOCATION,
     rotation="7 days",
     compression="zip",
     retention="30 days",
@@ -62,10 +66,11 @@ def check_endpoint(
     """hits the url with a get request and returns the results as a CheckResult"""
     logger.debug(f"testing {name}@{url}")
     try:
-        response = client.get(url, headers=headers, timeout=10)
+        _url = f"{QUEUE_URL_ROOT}{url}"
+        response = client.get(_url, headers=headers, timeout=10)
         return CheckResult(
             name,
-            url,
+            _url,
             response.status_code,
             response.content if response.status_code != 200 else None,
         )
@@ -122,14 +127,14 @@ async def main():
     """main execution"""
 
     logger.info("starting...")
-    with open(
-        "/usr1/rlong/api-status-checker/queue.json", "r", encoding="utf-8"
-    ) as _input:
+    queue_location = os.getenv("QUEUE_LOCATION")
+    assert queue_location
+    with open(queue_location, "r", encoding="utf-8") as _input:
         endpoints = json.load(_input)
         results = await run_checks(endpoints)
 
         errors = handle_check_results(results)
-        # handle_big_brother(errors)
+        handle_big_brother(errors)
 
         email_to = os.getenv("STATUS_CHECKER_EMAIL")
         if not email_to:
