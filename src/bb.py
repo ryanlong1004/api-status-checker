@@ -20,6 +20,4 @@ def _date():
 def post(color: Color, message: str):
     """post status to BB"""
     command = f'$BB $BBDISP "status SPOT.STATUS {color} {_date()} {message}"'
-    print(command)
-
     subprocess.Popen(command, shell=True)
