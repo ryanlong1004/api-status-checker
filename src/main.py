@@ -136,11 +136,11 @@ async def main():
         errors = handle_check_results(results)
         handle_big_brother(errors)
 
-        email_to = os.getenv("STATUS_CHECKER_EMAIL")
-        if not email_to:
-            raise ValueError(f"invalid email address {email_to}")
-
-        handle_email(email_to, errors)
+        if errors:
+            email_to = os.getenv("STATUS_CHECKER_EMAIL")
+            if not email_to:
+                raise ValueError(f"invalid email address {email_to}")
+            handle_email(email_to, errors)
 
         logger.info("finished")
 
